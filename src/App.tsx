@@ -18,6 +18,7 @@ const replacements = [
   { from: 'ANTHROPIC_API_KEY', to: 'OPENAI_API_KEY' },
   { from: 'codex', to: 'opencode' },
   { from: 'opencode', to: 'gemini' },
+  { from: 'OPENAI_API_KEY', to: 'GEMINI_API_KEY' },
   { from: 'gemini', to: 'goose' },
   { from: 'goose', to: 'pi' },
 ]
