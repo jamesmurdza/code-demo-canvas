@@ -37,10 +37,15 @@ function App() {
     const s = stepRef.current
     const currentText = fullTextRef.current
     
+    console.log('Step', s, 'looking for:', replacements[s])
+    console.log('Text:', currentText.substring(0, 100))
+    
     if (s >= replacements.length || !editorRef.current) return
     
     const { from, to } = replacements[s]
     const idx = currentText.indexOf(from)
+    
+    console.log('Found at index:', idx, 'word:', from)
     
     if (idx === -1) {
       stepRef.current++
@@ -49,16 +54,22 @@ function App() {
     }
     
     const editor = editorRef.current
+    const startCol = idx + 1
+    const endCol = idx + from.length + 1
+    
+    console.log('Selecting columns:', startCol, 'to', endCol)
     
     // Focus and select
     window.setTimeout(() => {
       editor.focus()
-      editor.setSelection({
+      const sel = {
         startLineNumber: 1,
-        startColumn: idx + 1,
+        startColumn: startCol,
         endLineNumber: 1,
-        endColumn: idx + from.length + 1
-      })
+        endColumn: endCol
+      }
+      editor.setSelection(sel)
+      console.log('Selection set')
     }, 10)
     
     // After selection, replace after delay
