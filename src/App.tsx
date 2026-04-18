@@ -33,6 +33,51 @@ function App() {
     editorRef.current = editor
   }
 
+  const deleteAndType = (editor: any, startCol: number, endCol: number, replaceWith: string) => {
+    // First, delete character by character backwards
+    let pos = endCol
+    const deleteStep = () => {
+      if (pos > startCol) {
+        pos--
+        const range = {
+          startLineNumber: 1,
+          startColumn: pos,
+          endLineNumber: 1,
+          endColumn: pos
+        }
+        editor.executeEdits('', [{ range, text: '', forceMoveMarkers: true }])
+        fullTextRef.current = fullTextRef.current.slice(0, pos - 1) + fullTextRef.current.slice(pos - 1)
+        setText(fullTextRef.current)
+        setTimeout(deleteStep, 30)
+      } else {
+        // Done deleting, now type the new text character by character
+        typeNextChar(startCol, replaceWith, 0)
+      }
+    }
+    deleteStep()
+  }
+
+  const typeNextChar = (startCol: number, replaceWith: string, pos: number) => {
+    const editor = editorRef.current
+    if (!editor) return
+
+    if (pos < replaceWith.length) {
+      const range = {
+        startLineNumber: 1,
+        startColumn: startCol + pos,
+        endLineNumber: 1,
+        endColumn: startCol + pos + 1
+      }
+      editor.executeEdits('', [{ range, text: replaceWith[pos], forceMoveMarkers: true }])
+      fullTextRef.current = fullTextRef.current.slice(0, startCol - 1 + pos) + replaceWith[pos] + fullTextRef.current.slice(startCol - 1 + pos)
+      setText(fullTextRef.current)
+      setTimeout(() => typeNextChar(startCol, replaceWith, pos + 1), 50)
+    } else {
+      stepRef.current++
+      setTimeout(runReplacement, 200)
+    }
+  }
+
   const runReplacement = () => {
     const s = stepRef.current
     
@@ -52,7 +97,7 @@ function App() {
     const startCol = idx + 1
     const endCol = idx + from.length + 1
     
-    // Select text (show selection briefly)
+    // Select text
     const range = {
       startLineNumber: 1,
       startColumn: startCol,
@@ -61,30 +106,10 @@ function App() {
     }
     editor.setSelection(range)
     
-    // After selection delay, delete and type
+    // After selection show, delete and type
     setTimeout(() => {
-      // Use executeEdits to replace the selected text
-      const editRange = {
-        startLineNumber: 1,
-        startColumn: startCol,
-        endLineNumber: 1,
-        endColumn: endCol
-      }
-      
-      editor.executeEdits('', [{
-        range: editRange,
-        text: to,
-        forceMoveMarkers: true
-      }])
-      
-      // Update state
-      const newText = currentText.slice(0, idx) + to + currentText.slice(idx + from.length)
-      fullTextRef.current = newText
-      setText(newText)
-      
-      stepRef.current++
-      setTimeout(runReplacement, 200)
-    }, 500)
+      deleteAndType(editor, startCol, endCol, to)
+    }, 400)
   }
 
   const runAnimation = () => {
