@@ -1,8 +1,5 @@
 import { useState } from 'react'
-import Editor from 'react-simple-code-editor'
-import { highlight, languages } from 'prismjs'
-import 'prismjs/components/prism-typescript'
-import 'prismjs/themes/prism.css'
+import Editor from '@monaco-editor/react'
 import './App.css'
 
 const defaultCode = `// TypeScript Code Editor
@@ -20,16 +17,23 @@ function App() {
   return (
     <div className="editor-container">
       <Editor
+        height="100vh"
+        defaultLanguage="typescript"
         value={code}
-        onValueChange={setCode}
-        highlight={code => highlight(code, languages.ts, 'typescript')}
-        padding={48}
-        className="editor"
-        textareaClassName="editor-textarea"
-        style={{
-          fontFamily: '"Fira Code", "Fira Mono", monospace',
+        onChange={value => setCode(value || '')}
+        theme="light"
+        options={{
           fontSize: 20,
+          fontFamily: '"Fira Code", "Fira Mono", monospace',
           lineHeight: 1.6,
+          wordWrap: 'on',
+          padding: { top: 48, bottom: 48 },
+          minimap: { enabled: false },
+          scrollBeyondLastLine: false,
+          lineNumbers: 'off',
+          folding: false,
+          glyphMargin: false,
+          contextmenu: false,
         }}
       />
     </div>
