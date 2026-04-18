@@ -88,11 +88,11 @@ function App() {
         clearInterval(deleteInterval)
         // Type the new word character by character
         let typePos = 0
+        const remaining = text.slice(idx)
         const typeInterval = setInterval(() => {
           if (typePos < to.length) {
-            const insertAt = idx
-            setText(text.slice(0, insertAt) + to.slice(0, typePos + 1))
             typePos++
+            setText(text.slice(0, idx) + to.slice(0, typePos) + remaining)
           } else {
             clearInterval(typeInterval)
             setIsTyping(false)
