@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
+import type { OnMount } from '@monaco-editor/react'
 import Editor from '@monaco-editor/react'
 import './App.css'
 
@@ -25,6 +26,11 @@ function App() {
   const [text, setText] = useState('')
   const [step, setStep] = useState(0)
   const [loaded, setLoaded] = useState(false)
+  const editorRef = useRef<any>(null)
+
+  const handleEditorMount: OnMount = (editor) => {
+    editorRef.current = editor
+  }
 
   useEffect(() => {
     if (loaded) return
@@ -54,25 +60,36 @@ function App() {
     }
     
     setStep(s => s + 1)
+    const editor = editorRef.current
+    if (!editor) return
     
-    let deletePos = idx + from.length
-    const deleteInterval = setInterval(() => {
-      if (deletePos > idx) {
-        deletePos--
-        setText(text.slice(0, deletePos) + text.slice(deletePos + 1))
-      } else {
-        clearInterval(deleteInterval)
-        let typePos = 0
-        const typeInterval = setInterval(() => {
-          if (typePos < to.length) {
-            typePos++
-            setText(text.slice(0, idx) + to.slice(0, typePos) + text.slice(idx + from.length))
-          } else {
-            clearInterval(typeInterval)
-          }
-        }, 80)
+    // Select the text first
+    const selection = {
+      startLineNumber: 1,
+      startColumn: idx + 1,
+      endLineNumber: 1,
+      endColumn: idx + from.length + 1
+    }
+    editor.setSelection(selection)
+    
+    // After brief pause, delete and type
+    setTimeout(() => {
+      const range = {
+        startLineNumber: 1,
+        startColumn: idx + 1,
+        endLineNumber: 1,
+        endColumn: idx + from.length + 1
       }
-    }, 15)
+      
+      editor.executeEdits('', [{
+        range,
+        text: to,
+        forceMoveMarkers: true
+      }])
+      
+      // Update state after edit
+      setText(currentText.slice(0, idx) + to + currentText.slice(idx + from.length))
+    }, 400)
   }
 
   return (
@@ -82,6 +99,7 @@ function App() {
         language="typescript"
         value={text}
         onChange={value => setText(value || '')}
+        onMount={handleEditorMount}
         theme="light"
         options={{
           fontSize: 20,
