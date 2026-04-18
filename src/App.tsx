@@ -25,6 +25,7 @@ function App() {
         highlight={code => highlight(code, languages.ts, 'typescript')}
         padding={48}
         className="editor"
+        textareaClassName="editor-textarea"
         style={{
           fontFamily: '"Fira Code", "Fira Mono", monospace',
           fontSize: 20,

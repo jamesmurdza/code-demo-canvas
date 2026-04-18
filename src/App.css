@@ -9,4 +9,11 @@
 
 .editor textarea {
   outline: none;
+  opacity: 1 !important;
+  z-index: 1;
+  position: relative;
+}
+
+.editor-textarea {
+  opacity: 1 !important;
 }
