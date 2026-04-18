@@ -26,47 +26,46 @@ function App() {
   const [text, setText] = useState('')
   const [started, setStarted] = useState(false)
   const editorRef = useRef<any>(null)
+  const stepRef = useRef(0)
+  const runningRef = useRef(false)
 
   const handleEditorMount: OnMount = (editor) => {
     editorRef.current = editor
   }
 
-  const runAnimation = async () => {
-    if (started) return
-    setStarted(true)
+  const runNextStep = () => {
+    const currentText = text
+    const s = stepRef.current
     
-    // First type the initial code
-    for (let i = 0; i <= targetCode.length; i++) {
-      setText(targetCode.slice(0, i))
-      await new Promise(r => setTimeout(r, 15))
+    if (s >= replacements.length) {
+      runningRef.current = false
+      return
     }
     
-    // Then run through all replacements with small pauses
-    for (let s = 0; s < replacements.length; s++) {
-      const { from, to } = replacements[s]
-      const idx = text.indexOf(from)
-      
-      if (idx === -1) {
-        continue
-      }
-      
-      const editor = editorRef.current
-      if (!editor) continue
-      
-      // Select the text
-      const selection = {
-        startLineNumber: 1,
-        startColumn: idx + 1,
-        endLineNumber: 1,
-        endColumn: idx + from.length + 1
-      }
-      editor.setSelection(selection)
-      editor.revealLineInCenter(1)
-      
-      // Wait half second
-      await new Promise(r => setTimeout(r, 500))
-      
-      // Delete and replace
+    const { from, to } = replacements[s]
+    const idx = currentText.indexOf(from)
+    
+    if (idx === -1) {
+      stepRef.current++
+      setTimeout(runNextStep, 200)
+      return
+    }
+    
+    const editor = editorRef.current
+    if (!editor) return
+    
+    // Select the text
+    const selection = {
+      startLineNumber: 1,
+      startColumn: idx + 1,
+      endLineNumber: 1,
+      endColumn: idx + from.length + 1
+    }
+    editor.setSelection(selection)
+    editor.revealLineInCenter(1)
+    
+    // Wait half second, then replace
+    setTimeout(() => {
       const range = {
         startLineNumber: 1,
         startColumn: idx + 1,
@@ -81,12 +80,34 @@ function App() {
       }])
       
       // Update state with new text
-      const newText = text.slice(0, idx) + to + text.slice(idx + from.length)
+      const newText = currentText.slice(0, idx) + to + currentText.slice(idx + from.length)
       setText(newText)
+      stepRef.current++
       
-      // Small pause between steps
-      await new Promise(r => setTimeout(r, 200))
-    }
+      // Continue to next step
+      setTimeout(runNextStep, 200)
+    }, 500)
+  }
+
+  const runAnimation = () => {
+    if (started) return
+    
+    setStarted(true)
+    runningRef.current = true
+    
+    // First type the initial code
+    let i = 0
+    const typeInterval = setInterval(() => {
+      if (i <= targetCode.length) {
+        setText(targetCode.slice(0, i))
+        i++
+      } else {
+        clearInterval(typeInterval)
+        // Start replacements
+        stepRef.current = 0
+        setTimeout(runNextStep, 300)
+      }
+    }, 15)
   }
 
   return (
