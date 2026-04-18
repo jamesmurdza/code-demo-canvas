@@ -1,7 +1,5 @@
-import { useState, useEffect, useCallback } from 'react'
-import { highlight, languages } from 'prismjs'
-import 'prismjs/components/prism-typescript'
-import 'prismjs/themes/prism.css'
+import { useState } from 'react'
+import Editor from '@monaco-editor/react'
 import './App.css'
 
 const targetCode = `import { createSession } from "background-agents"
@@ -26,44 +24,6 @@ const replacements = [
 function App() {
   const [text, setText] = useState(targetCode)
   const [step, setStep] = useState(0)
-  const [cursorPos, setCursorPos] = useState(0)
-  const [highlighted, setHighlighted] = useState('')
-
-  const highlightCode = (code: string) => {
-    try {
-      return highlight(code, languages.ts, 'typescript')
-    } catch {
-      return code
-    }
-  }
-
-  useEffect(() => {
-    setHighlighted(highlightCode(text))
-  }, [text])
-
-  const animate = useCallback((toText: string, onComplete: () => void) => {
-    let i = 0
-    setCursorPos(1)
-    const typeInterval = setInterval(() => {
-      if (i < toText.length) {
-        i++
-        setCursorPos(i + 1)
-        setText(toText.slice(0, i))
-      } else {
-        clearInterval(typeInterval)
-        setCursorPos(toText.length + 1)
-        onComplete()
-      }
-    }, 15)
-    return () => clearInterval(typeInterval)
-  }, [])
-
-  useEffect(() => {
-    setText('')
-    setTimeout(() => {
-      animate(targetCode, () => {})
-    }, 100)
-  }, [])
 
   const handlePlay = () => {
     if (step >= replacements.length) return
@@ -78,13 +38,11 @@ function App() {
     }
     
     setStep(s => s + 1)
-    setCursorPos(idx + 1)
     
     let deletePos = idx + from.length
     const deleteInterval = setInterval(() => {
       if (deletePos > idx) {
         deletePos--
-        setCursorPos(deletePos)
         setText(text.slice(0, deletePos) + text.slice(deletePos + 1))
       } else {
         clearInterval(deleteInterval)
@@ -92,43 +50,34 @@ function App() {
         const typeInterval = setInterval(() => {
           if (typePos < to.length) {
             typePos++
-            setCursorPos(idx + typePos)
             setText(text.slice(0, idx) + to.slice(0, typePos) + text.slice(idx + from.length))
           } else {
             clearInterval(typeInterval)
-            setCursorPos(idx + to.length)
           }
         }, 80)
       }
     }, 15)
   }
 
-  const renderWithCursor = () => {
-    if (cursorPos === 0) {
-      return (
-        <pre className="code-display">
-          <code dangerouslySetInnerHTML={{ __html: highlighted }}></code>
-          <span className="cursor">|</span>
-        </pre>
-      )
-    }
-    const plain = text
-    const before = plain.slice(0, cursorPos - 1)
-    const char = plain[cursorPos - 1] || ''
-    const after = plain.slice(cursorPos - 1)
-    
-    return (
-      <pre className="code-display">
-        <code dangerouslySetInnerHTML={{ __html: before }}></code>
-        <span className="cursor">{char}</span>
-        <code dangerouslySetInnerHTML={{ __html: after }}></code>
-      </pre>
-    )
-  }
-
   return (
     <div className="editor-container">
-      {renderWithCursor()}
+      <Editor
+        height="100vh"
+        language="typescript"
+        value={text}
+        onChange={value => setText(value || '')}
+        theme="light"
+        options={{
+          fontSize: 20,
+          fontFamily: '"Fira Code", monospace',
+          minimap: { enabled: false },
+          lineNumbers: 'off',
+          folding: false,
+          wordWrap: 'on',
+          scrollBeyondLastLine: false,
+          padding: { top: 48, bottom: 48 },
+        }}
+      />
       {step < replacements.length && (
         <button className="play-button" onClick={handlePlay}>▶</button>
       )}
