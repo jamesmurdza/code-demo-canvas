@@ -1,4 +1,52 @@
 .editor-container {
   min-height: 100vh;
   background: #ffffff;
+  padding: 48px;
+  position: relative;
+}
+
+.code-display {
+  font-family: 'Fira Code', 'Fira Mono', monospace;
+  font-size: 20px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  margin: 0;
+  color: #333;
+}
+
+.cursor {
+  animation: blink 1s step-end infinite;
+}
+
+@keyframes blink {
+  50% { opacity: 0; }
+}
+
+.play-button {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: none;
+  background: #333;
+  color: #fff;
+  font-size: 20px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  transition: transform 0.2s, background 0.2s;
+}
+
+.play-button:hover {
+  transform: scale(1.1);
+  background: #555;
+}
+
+.play-button:active {
+  transform: scale(0.95);
 }
