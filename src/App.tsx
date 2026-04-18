@@ -114,6 +114,14 @@ function App() {
           cursorBlinking: 'smooth',
           renderLineHighlight: 'none',
           automaticLayout: true,
+          formatOnPaste: false,
+          formatOnType: false,
+        }}
+        beforeMount={(monaco) => {
+          monaco.languages.typescript.typescriptDefaults.setDiagnosticsOptions({
+            noSemanticValidation: true,
+            noSyntaxValidation: true,
+          })
         }}
       />
       {step < replacements.length && (
