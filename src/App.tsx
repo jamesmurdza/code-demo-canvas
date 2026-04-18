@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import './App.css'
 
-const initialCode = `import { createSession } from "background-agents"
+const targetCode = `import { createSession } from "background-agents"
 
 const session = await createSession("claude", {
   sandbox,
@@ -20,47 +20,76 @@ const replacements = [
 ]
 
 function App() {
-  const [code, setCode] = useState(initialCode)
+  const [text, setText] = useState(targetCode)
   const [step, setStep] = useState(0)
-  const [animating, setAnimating] = useState(false)
-
-  useEffect(() => {
-    if (!animating || step >= replacements.length) return
-
-    const current = replacements[step]
-    const nextCode = code.replace(current.from, '')
+  const [isTyping, setIsTyping] = useState(false)
+  
+  const animate = useCallback((toText: string, onComplete: () => void) => {
+    let i = 0
+    setIsTyping(true)
     
-    const interval = setInterval(() => {
-      setCode(prev => {
-        if (prev.length > nextCode.length) {
-          clearInterval(interval)
-          setTimeout(() => {
-            setCode(prev + current.to)
-            setAnimating(false)
-          }, 100)
-          return prev.slice(0, -1)
-        }
-        return prev.slice(0, -1)
-      })
+    const typeInterval = setInterval(() => {
+      if (i < toText.length) {
+        i++
+        setText(toText.slice(0, i))
+      } else {
+        clearInterval(typeInterval)
+        setIsTyping(false)
+        onComplete()
+      }
     }, 15)
     
-    return () => clearInterval(interval)
-  }, [animating, step])
+    return () => clearInterval(typeInterval)
+  }, [])
+
+  useEffect(() => {
+    // Initial - clear text on first load
+    setText('')
+    setTimeout(() => {
+      animate(targetCode, () => {})
+    }, 100)
+  }, [])
 
   const handlePlay = () => {
-    if (step === 0) {
-      setCode('')
-      setTimeout(() => setAnimating(true), 100)
-    } else if (step < replacements.length) {
-      setAnimating(true)
-    }
-    setStep(s => s + 1)
+    if (step >= replacements.length) return
+    
+    const { from, to } = replacements[step]
+    const currentText = text
+    const middleText = currentText.replace(from, '')
+    
+    setStep(step + 1)
+    
+    // First delete
+    let i = currentText.length
+    const deleteInterval = setInterval(() => {
+      if (i > middleText.length) {
+        i--
+        setText(text.slice(0, i))
+      } else {
+        clearInterval(deleteInterval)
+        // Then type
+        let j = 0
+        const typeInterval = setInterval(() => {
+          if (j < to.length) {
+            j++
+            setText(middleText + to.slice(0, j))
+          } else {
+            clearInterval(typeInterval)
+          }
+        }, 80)
+      }
+    }, 15)
   }
 
   return (
     <div className="editor-container">
-      <pre className="code-display"><code>{code}</code></pre>
-      <button className="play-button" onClick={handlePlay}>▶</button>
+      <pre className="code-display">
+        <code>{text}</code>
+        {isTyping && <span className="cursor">|</span>}
+      </pre>
+      {step < replacements.length && (
+        <button className="play-button" onClick={handlePlay}>▶</button>
+      )}
     </div>
   )
 }
