@@ -138,11 +138,14 @@ function App() {
           padding: { top: 48, bottom: 48 },
           cursorStyle: 'line',
           cursorBlinking: 'smooth',
-          renderLineHighlight: 'none',
+          renderLineHighlight: 'line',
           automaticLayout: true,
           formatOnPaste: false,
           formatOnType: false,
-          selectionHighlight: true,
+          selectOnLineNumbers: true,
+        }}
+        onMount={(editor) => {
+          editor.focus()
         }}
         beforeMount={(monaco) => {
           monaco.languages.typescript.typescriptDefaults.setDiagnosticsOptions({
