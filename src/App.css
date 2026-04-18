@@ -1,0 +1,12 @@
+.editor-container {
+  min-height: 100vh;
+  background: #ffffff;
+}
+
+.editor {
+  min-height: 100vh;
+}
+
+.editor textarea {
+  outline: none;
+}
