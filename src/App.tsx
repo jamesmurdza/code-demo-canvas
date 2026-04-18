@@ -70,24 +70,31 @@ function App() {
     
     const { from, to } = replacements[step]
     const currentText = text
-    const middleText = currentText.replace(from, '')
+    const idx = currentText.indexOf(from)
+    
+    if (idx === -1) return
     
     setStep(step + 1)
+    setIsTyping(true)
     
+    // First just delete
     let i = currentText.length
     const deleteInterval = setInterval(() => {
-      if (i > middleText.length) {
+      const now = text
+      if (i > idx) {
         i--
-        setText(text.slice(0, i))
+        setText(now.slice(0, i))
       } else {
         clearInterval(deleteInterval)
+        // Then type back
         let j = 0
         const typeInterval = setInterval(() => {
           if (j < to.length) {
+            setText(now.slice(0, idx) + to.slice(0, j + 1))
             j++
-            setText(middleText + to.slice(0, j))
           } else {
             clearInterval(typeInterval)
+            setIsTyping(false)
           }
         }, 80)
       }
