@@ -106,7 +106,7 @@ function App() {
     <div className="editor-container">
       <pre className="code-display">
         <code dangerouslySetInnerHTML={{ __html: highlighted }}></code>
-        {isTyping && <span className="cursor">|</span>}
+        <span className="cursor">|</span>
       </pre>
       {step < replacements.length && (
         <button className="play-button" onClick={handlePlay}>▶</button>
