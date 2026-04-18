@@ -33,50 +33,7 @@ function App() {
     editorRef.current = editor
   }
 
-  const deleteAndReplace = (editor: any, startCol: number, endCol: number, replaceWith: string) => {
-    let pos = endCol
-    const deleteInterval = setInterval(() => {
-      if (pos > startCol) {
-        pos--
-        const range = {
-          startLineNumber: 1,
-          startColumn: pos,
-          endLineNumber: 1,
-          endColumn: pos + 1
-        }
-        editor.executeEdits('', [{ range, text: '', forceMoveMarkers: true }])
-        
-        const current = fullTextRef.current
-        fullTextRef.current = current.slice(0, pos - 1) + current.slice(pos)
-        setText(fullTextRef.current)
-      } else {
-        clearInterval(deleteInterval)
-        // Then type the new word
-        let typePos = 0
-        const typeInterval = setInterval(() => {
-          if (typePos < replaceWith.length) {
-            const atPos = startCol - 1 + typePos
-            const range = {
-              startLineNumber: 1,
-              startColumn: atPos + 1,
-              endLineNumber: 1,
-              endColumn: atPos + 2
-            }
-            editor.executeEdits('', [{ range, text: replaceWith[typePos], forceMoveMarkers: true }])
-            fullTextRef.current = fullTextRef.current.slice(0, atPos) + replaceWith[typePos] + fullTextRef.current.slice(atPos)
-            setText(fullTextRef.current)
-            typePos++
-          } else {
-            clearInterval(typeInterval)
-            stepRef.current++
-            setTimeout(selectAndReplace, 200)
-          }
-        }, 50)
-      }
-    }, 30)
-  }
-
-  const selectAndReplace = () => {
+  const runReplacement = () => {
     const s = stepRef.current
     
     if (s >= replacements.length || !editorRef.current) return
@@ -87,7 +44,7 @@ function App() {
     
     if (idx === -1) {
       stepRef.current++
-      setTimeout(selectAndReplace, 200)
+      setTimeout(runReplacement, 200)
       return
     }
     
@@ -95,18 +52,39 @@ function App() {
     const startCol = idx + 1
     const endCol = idx + from.length + 1
     
+    // Select text (show selection briefly)
     const range = {
       startLineNumber: 1,
       startColumn: startCol,
       endLineNumber: 1,
       endColumn: endCol
     }
-    
     editor.setSelection(range)
     
+    // After selection delay, delete and type
     setTimeout(() => {
-      deleteAndReplace(editor, startCol, endCol, to)
-    }, 400)
+      // Use executeEdits to replace the selected text
+      const editRange = {
+        startLineNumber: 1,
+        startColumn: startCol,
+        endLineNumber: 1,
+        endColumn: endCol
+      }
+      
+      editor.executeEdits('', [{
+        range: editRange,
+        text: to,
+        forceMoveMarkers: true
+      }])
+      
+      // Update state
+      const newText = currentText.slice(0, idx) + to + currentText.slice(idx + from.length)
+      fullTextRef.current = newText
+      setText(newText)
+      
+      stepRef.current++
+      setTimeout(runReplacement, 200)
+    }, 500)
   }
 
   const runAnimation = () => {
@@ -124,7 +102,7 @@ function App() {
       
       if (i >= targetCode.length) {
         clearInterval(interval)
-        setTimeout(selectAndReplace, 300)
+        setTimeout(runReplacement, 300)
       } else {
         i++
       }
