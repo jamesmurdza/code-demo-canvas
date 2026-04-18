@@ -72,7 +72,7 @@ function App() {
     }
     editor.setSelection(selection)
     
-    // After brief pause, delete and type
+    // After half second pause, delete and type
     setTimeout(() => {
       const range = {
         startLineNumber: 1,
@@ -89,7 +89,7 @@ function App() {
       
       // Update state after edit
       setText(currentText.slice(0, idx) + to + currentText.slice(idx + from.length))
-    }, 400)
+    }, 500)
   }
 
   return (
