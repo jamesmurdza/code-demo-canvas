@@ -44,8 +44,7 @@ function App() {
     // Then run through all replacements with small pauses
     for (let s = 0; s < replacements.length; s++) {
       const { from, to } = replacements[s]
-      const currentText = text
-      const idx = currentText.indexOf(from)
+      const idx = text.indexOf(from)
       
       if (idx === -1) {
         continue
@@ -81,7 +80,9 @@ function App() {
         forceMoveMarkers: true
       }])
       
-      setText(currentText.slice(0, idx) + to + currentText.slice(idx + from.length))
+      // Update state with new text
+      const newText = text.slice(0, idx) + to + text.slice(idx + from.length)
+      setText(newText)
       
       // Small pause between steps
       await new Promise(r => setTimeout(r, 200))
