@@ -116,6 +116,7 @@ function App() {
           automaticLayout: true,
           formatOnPaste: false,
           formatOnType: false,
+          selectionHighlight: true,
         }}
         beforeMount={(monaco) => {
           monaco.languages.typescript.typescriptDefaults.setDiagnosticsOptions({
