@@ -27,18 +27,17 @@ function App() {
   const [started, setStarted] = useState(false)
   const editorRef = useRef<any>(null)
   const stepRef = useRef(0)
-  const runningRef = useRef(false)
+  const fullTextRef = useRef('')
 
   const handleEditorMount: OnMount = (editor) => {
     editorRef.current = editor
   }
 
   const runNextStep = () => {
-    const currentText = text
     const s = stepRef.current
+    let currentText = fullTextRef.current
     
     if (s >= replacements.length) {
-      runningRef.current = false
       return
     }
     
@@ -79,8 +78,9 @@ function App() {
         forceMoveMarkers: true
       }])
       
-      // Update state with new text
+      // Update both the state and the ref
       const newText = currentText.slice(0, idx) + to + currentText.slice(idx + from.length)
+      fullTextRef.current = newText
       setText(newText)
       stepRef.current++
       
@@ -93,19 +93,23 @@ function App() {
     if (started) return
     
     setStarted(true)
-    runningRef.current = true
     
     // First type the initial code
     let i = 0
+    fullTextRef.current = ''
+    stepRef.current = 0
+    
     const typeInterval = setInterval(() => {
-      if (i <= targetCode.length) {
-        setText(targetCode.slice(0, i))
-        i++
-      } else {
+      const partial = targetCode.slice(0, i)
+      fullTextRef.current = partial
+      setText(partial)
+      
+      if (i >= targetCode.length) {
         clearInterval(typeInterval)
         // Start replacements
-        stepRef.current = 0
         setTimeout(runNextStep, 300)
+      } else {
+        i++
       }
     }, 15)
   }
@@ -116,7 +120,11 @@ function App() {
         height="100vh"
         language="typescript"
         value={text}
-        onChange={value => setText(value || '')}
+        onChange={value => {
+          const v = value || ''
+          fullTextRef.current = v
+          setText(v)
+        }}
         onMount={handleEditorMount}
         theme="vs"
         options={{
