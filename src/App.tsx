@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Editor from '@monaco-editor/react'
 import './App.css'
 
@@ -22,8 +22,24 @@ const replacements = [
 ]
 
 function App() {
-  const [text, setText] = useState(targetCode)
+  const [text, setText] = useState('')
   const [step, setStep] = useState(0)
+  const [loaded, setLoaded] = useState(false)
+
+  useEffect(() => {
+    if (loaded) return
+    setLoaded(true)
+    let i = 0
+    const typeInterval = setInterval(() => {
+      if (i < targetCode.length) {
+        i++
+        setText(targetCode.slice(0, i))
+      } else {
+        clearInterval(typeInterval)
+      }
+    }, 15)
+    return () => clearInterval(typeInterval)
+  }, [])
 
   const handlePlay = () => {
     if (step >= replacements.length) return
@@ -76,6 +92,10 @@ function App() {
           wordWrap: 'on',
           scrollBeyondLastLine: false,
           padding: { top: 48, bottom: 48 },
+          cursorStyle: 'line',
+          cursorBlinking: 'smooth',
+          renderLineHighlight: 'none',
+          automaticLayout: true,
         }}
       />
       {step < replacements.length && (
