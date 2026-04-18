@@ -1,4 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
+import { highlight, languages } from 'prismjs'
+import 'prismjs/components/prism-typescript'
+import 'prismjs/themes/prism.css'
 import './App.css'
 
 const targetCode = `import { createSession } from "background-agents"
@@ -23,7 +26,20 @@ function App() {
   const [text, setText] = useState(targetCode)
   const [step, setStep] = useState(0)
   const [isTyping, setIsTyping] = useState(false)
-  
+  const [highlighted, setHighlighted] = useState('')
+
+  const highlightCode = (code: string) => {
+    try {
+      return highlight(code, languages.ts, 'typescript')
+    } catch {
+      return code
+    }
+  }
+
+  useEffect(() => {
+    setHighlighted(highlightCode(text))
+  }, [text])
+
   const animate = useCallback((toText: string, onComplete: () => void) => {
     let i = 0
     setIsTyping(true)
@@ -43,7 +59,6 @@ function App() {
   }, [])
 
   useEffect(() => {
-    // Initial - clear text on first load
     setText('')
     setTimeout(() => {
       animate(targetCode, () => {})
@@ -59,7 +74,6 @@ function App() {
     
     setStep(step + 1)
     
-    // First delete
     let i = currentText.length
     const deleteInterval = setInterval(() => {
       if (i > middleText.length) {
@@ -67,7 +81,6 @@ function App() {
         setText(text.slice(0, i))
       } else {
         clearInterval(deleteInterval)
-        // Then type
         let j = 0
         const typeInterval = setInterval(() => {
           if (j < to.length) {
@@ -84,7 +97,7 @@ function App() {
   return (
     <div className="editor-container">
       <pre className="code-display">
-        <code>{text}</code>
+        <code dangerouslySetInnerHTML={{ __html: highlighted }}></code>
         {isTyping && <span className="cursor">|</span>}
       </pre>
       {step < replacements.length && (
