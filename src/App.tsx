@@ -73,27 +73,26 @@ function App() {
     const currentText = text
     const idx = currentText.indexOf(from)
     
-    if (idx === -1) return
+    if (idx === -1) {
+      setStep(s => s + 1)
+      return
+    }
     
-    setStep(step + 1)
+    setStep(s => s + 1)
     setIsTyping(true)
     
-    // Delete character by character backwards (like pressing backspace)
     let deletePos = idx + from.length
     const deleteInterval = setInterval(() => {
-      const now = text
       if (deletePos > idx) {
         deletePos--
-        setText(now.slice(0, deletePos) + now.slice(deletePos + 1))
+        setText(text.slice(0, deletePos) + text.slice(deletePos + 1))
       } else {
         clearInterval(deleteInterval)
-        // Deletion done - type the new word
-        const endPos = idx
         let typePos = 0
         const typeInterval = setInterval(() => {
           if (typePos < to.length) {
             typePos++
-            setText(now.slice(0, endPos) + to.slice(0, typePos) + now.slice(endPos))
+            setText(text.slice(0, idx) + to.slice(0, typePos) + text.slice(idx + from.length))
           } else {
             clearInterval(typeInterval)
             setIsTyping(false)
