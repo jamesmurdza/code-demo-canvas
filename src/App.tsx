@@ -1,143 +1,84 @@
 import { useState, useEffect, useRef } from 'react'
 import './App.css'
 
-const steps: { code: string; deleteFrom?: string; replaceWith?: string }[] = [
-  { code: `import { createSession } from "background-agents"
+const initialCode = `import { createSession } from "background-agents"
 
 const session = await createSession("claude", {
   sandbox,
   env: { ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY },
 })
 
-await session.start("Add GitHub OAuth integration")` },
-  { code: `import { createSession } from "background-agents"
+await session.start("Add GitHub OAuth integration")`
 
-const session = await createSession("codex", {
-  sandbox,
-  env: { ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY },
-})
-
-await session.start("Add GitHub OAuth integration")`, deleteFrom: 'claude', replaceWith: 'codex' },
-  { code: `import { createSession } from "background-agents"
-
-const session = await createSession("codex", {
-  sandbox,
-  env: { OPENAI_API_KEY: process.env.OPENAI_API_KEY },
-})
-
-await session.start("Add GitHub OAuth integration")`, deleteFrom: 'ANTHROPIC_API_KEY', replaceWith: 'OPENAI_API_KEY' },
-  { code: `import { createSession } from "background-agents"
-
-const session = await createSession("opencode", {
-  sandbox,
-  env: { OPENAI_API_KEY: process.env.OPENAI_API_KEY },
-})
-
-await session.start("Add GitHub OAuth integration")`, deleteFrom: 'codex', replaceWith: 'opencode' },
-  { code: `import { createSession } from "background-agents"
-
-const session = await createSession("gemini", {
-  sandbox,
-  env: { OPENAI_API_KEY: process.env.OPENAI_API_KEY },
-})
-
-await session.start("Add GitHub OAuth integration")`, deleteFrom: 'opencode', replaceWith: 'gemini' },
-  { code: `import { createSession } from "background-agents"
-
-const session = await createSession("goose", {
-  sandbox,
-  env: { OPENAI_API_KEY: process.env.OPENAI_API_KEY },
-})
-
-await session.start("Add GitHub OAuth integration")`, deleteFrom: 'gemini', replaceWith: 'goose' },
-  { code: `import { createSession } from "background-agents"
-
-const session = await createSession("pi", {
-  sandbox,
-  env: { OPENAI_API_KEY: process.env.OPENAI_API_KEY },
-})
-
-await session.start("Add GitHub OAuth integration")`, deleteFrom: 'goose', replaceWith: 'pi' },
+const replacements = [
+  { from: 'claude', to: 'codex' },
+  { from: 'ANTHROPIC_API_KEY', to: 'OPENAI_API_KEY' },
+  { from: 'codex', to: 'opencode' },
+  { from: 'opencode', to: 'gemini' },
+  { from: 'gemini', to: 'goose' },
+  { from: 'goose', to: 'pi' },
 ]
 
-function applyTransformation(code: string, deleteFrom: string, replaceWith: string): string {
-  if (!deleteFrom || !replaceWith) return code
-  return code.replace(deleteFrom, replaceWith)
-}
-
 function App() {
-  const [displayCode, setDisplayCode] = useState('')
-  const [currentStep, setCurrentStep] = useState(0)
-  const [isTyping, setIsTyping] = useState(false)
-  const [isDeleting, setIsDeleting] = useState(false)
+  const [displayCode, setDisplayCode] = useState(initialCode)
+  const [phase, setPhase] = useState<'idle' | 'typing' | 'deleting'>('idle')
   const [showPlay, setShowPlay] = useState(true)
-  const targetCodeRef = useRef('')
-  const deleteTargetRef = useRef('')
-
-  const targetCode = steps[currentStep].code
+  const currentRef = useRef(0)
+  const targetRef = useRef(initialCode)
 
   useEffect(() => {
-    if (currentStep === 0 && displayCode === '') {
-      setShowPlay(true)
-      return
-    }
-
-    if (isTyping) {
-      const timeout = setTimeout(() => {
-        if (displayCode.length < targetCode.length) {
-          setDisplayCode(targetCode.slice(0, displayCode.length + 1))
-        } else {
-          setIsTyping(false)
-          if (currentStep < steps.length - 1) {
-            setTimeout(() => setShowPlay(true), 300)
+    if (phase === 'typing') {
+      const timer = setTimeout(() => {
+        const target = targetRef.current
+        setDisplayCode(prev => {
+          if (prev.length < target.length) {
+            return target.slice(0, prev.length + 1)
           }
-        }
-      }, 15)
-      return () => clearTimeout(timeout)
+          setPhase('idle')
+          if (currentRef.current < replacements.length) {
+            setShowPlay(true)
+          }
+          return prev
+        })
+      }, 20)
+      return () => clearTimeout(timer)
     }
 
-    if (isDeleting) {
-      const timeout = setTimeout(() => {
-        if (displayCode.length > deleteTargetRef.current.length) {
-          setDisplayCode(displayCode.slice(0, -1))
-        } else {
-          setIsDeleting(false)
-          targetCodeRef.current = steps[currentStep].code
-          deleteTargetRef.current = ''
-          setIsTyping(true)
+    if (phase === 'deleting') {
+      const current = replacements[currentRef.current - 1]
+      const target = targetRef.current.replace(current.from, '')
+      const timer = setTimeout(() => {
+        setDisplayCode(prev => {
+          if (prev.length > target.length) {
+            return prev.slice(0, -1)
+          }
+          targetRef.current = prev.replace(current.from, current.to)
+          setPhase('typing')
           setShowPlay(false)
-        }
-      }, 10)
-      return () => clearTimeout(timeout)
+          return prev
+        })
+      }, 8)
+      return () => clearTimeout(timer)
     }
-  }, [displayCode, isTyping, isDeleting, currentStep, targetCode])
+  }, [phase])
 
   const playAnimation = () => {
-    if (currentStep === 0 && displayCode === '') {
-      targetCodeRef.current = targetCode
-      setIsTyping(true)
+    if (currentRef.current === 0) {
+      setDisplayCode('')
+      targetRef.current = initialCode
+      setPhase('typing')
+      currentRef.current = 1
       setShowPlay(false)
       return
     }
 
-    if (currentStep < steps.length - 1) {
-      const nextStep = steps[currentStep + 1]
-      if (nextStep.deleteFrom) {
-        deleteTargetRef.current = displayCode.replace(nextStep.deleteFrom, '')
-        if (nextStep.replaceWith) {
-          const newCode = applyTransformation(displayCode, nextStep.deleteFrom, nextStep.replaceWith)
-          targetCodeRef.current = newCode
-        } else {
-          targetCodeRef.current = deleteTargetRef.current
-        }
-        setIsDeleting(true)
-        setShowPlay(false)
-      } else {
-        targetCodeRef.current = nextStep.code
-        setIsTyping(true)
-        setShowPlay(false)
-      }
-      setCurrentStep(currentStep + 1)
+    if (currentRef.current < replacements.length) {
+      const current = replacements[currentRef.current - 1]
+      const afterDelete = displayCode.replace(current.from, '')
+      targetRef.current = afterDelete.replace(current.from, current.to)
+      setPhase('deleting')
+      currentRef.current++
+      setShowPlay(false)
     }
   }
 
@@ -145,7 +86,7 @@ function App() {
     <div className="editor-container">
       <pre className="code-display">
         <code>{displayCode}</code>
-        {isTyping && <span className="cursor">|</span>}
+        {phase === 'typing' && <span className="cursor">|</span>}
       </pre>
       {showPlay && (
         <button className="play-button" onClick={playAnimation}>
