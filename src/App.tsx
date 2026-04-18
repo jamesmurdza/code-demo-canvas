@@ -26,44 +26,42 @@ function App() {
   const [text, setText] = useState('')
   const [started, setStarted] = useState(false)
   const editorRef = useRef<any>(null)
-  const stepRef = useRef(0)
   const fullTextRef = useRef('')
+  const stepRef = useRef(0)
 
   const handleEditorMount: OnMount = (editor) => {
     editorRef.current = editor
   }
 
-  const runNextStep = () => {
+  const selectAndReplace = () => {
     const s = stepRef.current
-    let currentText = fullTextRef.current
+    const currentText = fullTextRef.current
     
-    if (s >= replacements.length) {
-      return
-    }
+    if (s >= replacements.length || !editorRef.current) return
     
     const { from, to } = replacements[s]
     const idx = currentText.indexOf(from)
     
     if (idx === -1) {
       stepRef.current++
-      setTimeout(runNextStep, 200)
+      setTimeout(selectAndReplace, 200)
       return
     }
     
     const editor = editorRef.current
-    if (!editor) return
     
-    // Select the text
-    const selection = {
-      startLineNumber: 1,
-      startColumn: idx + 1,
-      endLineNumber: 1,
-      endColumn: idx + from.length + 1
-    }
-    editor.setSelection(selection)
-    editor.revealLineInCenter(1)
+    // Focus and select
+    window.setTimeout(() => {
+      editor.focus()
+      editor.setSelection({
+        startLineNumber: 1,
+        startColumn: idx + 1,
+        endLineNumber: 1,
+        endColumn: idx + from.length + 1
+      })
+    }, 10)
     
-    // Wait half second, then replace
+    // After selection, replace after delay
     setTimeout(() => {
       const range = {
         startLineNumber: 1,
@@ -78,14 +76,12 @@ function App() {
         forceMoveMarkers: true
       }])
       
-      // Update both the state and the ref
       const newText = currentText.slice(0, idx) + to + currentText.slice(idx + from.length)
       fullTextRef.current = newText
       setText(newText)
       stepRef.current++
       
-      // Continue to next step
-      setTimeout(runNextStep, 200)
+      setTimeout(selectAndReplace, 200)
     }, 500)
   }
 
@@ -93,21 +89,25 @@ function App() {
     if (started) return
     
     setStarted(true)
-    
-    // First type the initial code
-    let i = 0
     fullTextRef.current = ''
     stepRef.current = 0
     
-    const typeInterval = setInterval(() => {
+    let i = 0
+    const interval = setInterval(() => {
       const partial = targetCode.slice(0, i)
       fullTextRef.current = partial
       setText(partial)
       
       if (i >= targetCode.length) {
-        clearInterval(typeInterval)
-        // Start replacements
-        setTimeout(runNextStep, 300)
+        clearInterval(interval)
+        
+        // After typing complete, focus and start replacing
+        setTimeout(() => {
+          if (editorRef.current) {
+            editorRef.current.focus()
+          }
+          selectAndReplace()
+        }, 300)
       } else {
         i++
       }
@@ -142,10 +142,6 @@ function App() {
           automaticLayout: true,
           formatOnPaste: false,
           formatOnType: false,
-          selectOnLineNumbers: true,
-        }}
-        onMount={(editor) => {
-          editor.focus()
         }}
         beforeMount={(monaco) => {
           monaco.languages.typescript.typescriptDefaults.setDiagnosticsOptions({
