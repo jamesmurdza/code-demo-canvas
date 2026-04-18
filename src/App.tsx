@@ -43,7 +43,6 @@ function App() {
     
     // Then run through all replacements with small pauses
     for (let s = 0; s < replacements.length; s++) {
-      const step = s
       const { from, to } = replacements[s]
       const currentText = text
       const idx = currentText.indexOf(from)
@@ -63,6 +62,7 @@ function App() {
         endColumn: idx + from.length + 1
       }
       editor.setSelection(selection)
+      editor.revealLineInCenter(1)
       
       // Wait half second
       await new Promise(r => setTimeout(r, 500))
@@ -96,7 +96,7 @@ function App() {
         value={text}
         onChange={value => setText(value || '')}
         onMount={handleEditorMount}
-        theme="light"
+        theme="vs"
         options={{
           fontSize: 20,
           fontFamily: '"Fira Code", monospace',
