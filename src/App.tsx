@@ -14,10 +14,10 @@ await session.start("Add GitHub OAuth integration")`
 
 const replacements = [
   { from: 'claude', to: 'codex' },
-  { from: 'ANTHROPIC_API_KEY', to: 'OPENAI_API_KEY' },
+  { from: 'process.env.ANTHROPIC_API_KEY', to: 'process.env.OPENAI_API_KEY' },
   { from: 'codex', to: 'opencode' },
   { from: 'opencode', to: 'gemini' },
-  { from: 'OPENAI_API_KEY', to: 'GEMINI_API_KEY' },
+  { from: 'process.env.OPENAI_API_KEY', to: 'process.env.GEMINI_API_KEY' },
   { from: 'gemini', to: 'goose' },
   { from: 'goose', to: 'pi' },
 ]
@@ -33,19 +33,57 @@ function App() {
     editorRef.current = editor
   }
 
+  const deleteAndReplace = (editor: any, startCol: number, endCol: number, replaceWith: string) => {
+    let pos = endCol
+    const deleteInterval = setInterval(() => {
+      if (pos > startCol) {
+        pos--
+        const range = {
+          startLineNumber: 1,
+          startColumn: pos,
+          endLineNumber: 1,
+          endColumn: pos + 1
+        }
+        editor.executeEdits('', [{ range, text: '', forceMoveMarkers: true }])
+        
+        const current = fullTextRef.current
+        fullTextRef.current = current.slice(0, pos - 1) + current.slice(pos)
+        setText(fullTextRef.current)
+      } else {
+        clearInterval(deleteInterval)
+        // Then type the new word
+        let typePos = 0
+        const typeInterval = setInterval(() => {
+          if (typePos < replaceWith.length) {
+            const atPos = startCol - 1 + typePos
+            const range = {
+              startLineNumber: 1,
+              startColumn: atPos + 1,
+              endLineNumber: 1,
+              endColumn: atPos + 2
+            }
+            editor.executeEdits('', [{ range, text: replaceWith[typePos], forceMoveMarkers: true }])
+            fullTextRef.current = fullTextRef.current.slice(0, atPos) + replaceWith[typePos] + fullTextRef.current.slice(atPos)
+            setText(fullTextRef.current)
+            typePos++
+          } else {
+            clearInterval(typeInterval)
+            stepRef.current++
+            setTimeout(selectAndReplace, 200)
+          }
+        }, 50)
+      }
+    }, 30)
+  }
+
   const selectAndReplace = () => {
     const s = stepRef.current
-    const currentText = fullTextRef.current
-    
-    console.log('Step', s, 'looking for:', replacements[s])
-    console.log('Text:', currentText.substring(0, 100))
     
     if (s >= replacements.length || !editorRef.current) return
     
     const { from, to } = replacements[s]
+    const currentText = fullTextRef.current
     const idx = currentText.indexOf(from)
-    
-    console.log('Found at index:', idx, 'word:', from)
     
     if (idx === -1) {
       stepRef.current++
@@ -57,43 +95,18 @@ function App() {
     const startCol = idx + 1
     const endCol = idx + from.length + 1
     
-    console.log('Selecting columns:', startCol, 'to', endCol)
+    const range = {
+      startLineNumber: 1,
+      startColumn: startCol,
+      endLineNumber: 1,
+      endColumn: endCol
+    }
     
-    // Focus and select
-    window.setTimeout(() => {
-      editor.focus()
-      const sel = {
-        startLineNumber: 1,
-        startColumn: startCol,
-        endLineNumber: 1,
-        endColumn: endCol
-      }
-      editor.setSelection(sel)
-      console.log('Selection set')
-    }, 10)
+    editor.setSelection(range)
     
-    // After selection, replace after delay
     setTimeout(() => {
-      const range = {
-        startLineNumber: 1,
-        startColumn: idx + 1,
-        endLineNumber: 1,
-        endColumn: idx + from.length + 1
-      }
-      
-      editor.executeEdits('', [{
-        range,
-        text: to,
-        forceMoveMarkers: true
-      }])
-      
-      const newText = currentText.slice(0, idx) + to + currentText.slice(idx + from.length)
-      fullTextRef.current = newText
-      setText(newText)
-      stepRef.current++
-      
-      setTimeout(selectAndReplace, 200)
-    }, 500)
+      deleteAndReplace(editor, startCol, endCol, to)
+    }, 400)
   }
 
   const runAnimation = () => {
@@ -111,14 +124,7 @@ function App() {
       
       if (i >= targetCode.length) {
         clearInterval(interval)
-        
-        // After typing complete, focus and start replacing
-        setTimeout(() => {
-          if (editorRef.current) {
-            editorRef.current.focus()
-          }
-          selectAndReplace()
-        }, 300)
+        setTimeout(selectAndReplace, 300)
       } else {
         i++
       }
