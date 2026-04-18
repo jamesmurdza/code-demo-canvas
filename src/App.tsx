@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useRef } from 'react'
 import type { OnMount } from '@monaco-editor/react'
 import Editor from '@monaco-editor/react'
 import './App.css'
@@ -24,56 +24,50 @@ const replacements = [
 
 function App() {
   const [text, setText] = useState('')
-  const [step, setStep] = useState(0)
-  const [loaded, setLoaded] = useState(false)
+  const [started, setStarted] = useState(false)
   const editorRef = useRef<any>(null)
 
   const handleEditorMount: OnMount = (editor) => {
     editorRef.current = editor
   }
 
-  useEffect(() => {
-    if (loaded) return
-    setLoaded(true)
-    let i = 0
-    const typeInterval = setInterval(() => {
-      if (i < targetCode.length) {
-        i++
-        setText(targetCode.slice(0, i))
-      } else {
-        clearInterval(typeInterval)
+  const runAnimation = async () => {
+    if (started) return
+    setStarted(true)
+    
+    // First type the initial code
+    for (let i = 0; i <= targetCode.length; i++) {
+      setText(targetCode.slice(0, i))
+      await new Promise(r => setTimeout(r, 15))
+    }
+    
+    // Then run through all replacements with small pauses
+    for (let s = 0; s < replacements.length; s++) {
+      const step = s
+      const { from, to } = replacements[s]
+      const currentText = text
+      const idx = currentText.indexOf(from)
+      
+      if (idx === -1) {
+        continue
       }
-    }, 15)
-    return () => clearInterval(typeInterval)
-  }, [])
-
-  const handlePlay = () => {
-    if (step >= replacements.length) return
-    
-    const { from, to } = replacements[step]
-    const currentText = text
-    const idx = currentText.indexOf(from)
-    
-    if (idx === -1) {
-      setStep(s => s + 1)
-      return
-    }
-    
-    setStep(s => s + 1)
-    const editor = editorRef.current
-    if (!editor) return
-    
-    // Select the text first
-    const selection = {
-      startLineNumber: 1,
-      startColumn: idx + 1,
-      endLineNumber: 1,
-      endColumn: idx + from.length + 1
-    }
-    editor.setSelection(selection)
-    
-    // After half second pause, delete and type
-    setTimeout(() => {
+      
+      const editor = editorRef.current
+      if (!editor) continue
+      
+      // Select the text
+      const selection = {
+        startLineNumber: 1,
+        startColumn: idx + 1,
+        endLineNumber: 1,
+        endColumn: idx + from.length + 1
+      }
+      editor.setSelection(selection)
+      
+      // Wait half second
+      await new Promise(r => setTimeout(r, 500))
+      
+      // Delete and replace
       const range = {
         startLineNumber: 1,
         startColumn: idx + 1,
@@ -87,9 +81,11 @@ function App() {
         forceMoveMarkers: true
       }])
       
-      // Update state after edit
       setText(currentText.slice(0, idx) + to + currentText.slice(idx + from.length))
-    }, 500)
+      
+      // Small pause between steps
+      await new Promise(r => setTimeout(r, 200))
+    }
   }
 
   return (
@@ -125,9 +121,7 @@ function App() {
           })
         }}
       />
-      {step < replacements.length && (
-        <button className="play-button" onClick={handlePlay}>▶</button>
-      )}
+      <button className="play-button" onClick={runAnimation}>▶</button>
     </div>
   )
 }
