@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import './App.css'
 
 const initialCode = `import { createSession } from "background-agents"
@@ -20,79 +20,47 @@ const replacements = [
 ]
 
 function App() {
-  const [displayCode, setDisplayCode] = useState(initialCode)
-  const [phase, setPhase] = useState<'idle' | 'typing' | 'deleting'>('idle')
-  const [showPlay, setShowPlay] = useState(true)
-  const currentRef = useRef(0)
-  const targetRef = useRef(initialCode)
+  const [code, setCode] = useState(initialCode)
+  const [step, setStep] = useState(0)
+  const [animating, setAnimating] = useState(false)
 
   useEffect(() => {
-    if (phase === 'typing') {
-      const timer = setTimeout(() => {
-        const target = targetRef.current
-        setDisplayCode(prev => {
-          if (prev.length < target.length) {
-            return target.slice(0, prev.length + 1)
-          }
-          setPhase('idle')
-          if (currentRef.current < replacements.length) {
-            setShowPlay(true)
-          }
-          return prev
-        })
-      }, 20)
-      return () => clearTimeout(timer)
-    }
+    if (!animating || step >= replacements.length) return
 
-    if (phase === 'deleting') {
-      const current = replacements[currentRef.current - 1]
-      const target = targetRef.current.replace(current.from, '')
-      const timer = setTimeout(() => {
-        setDisplayCode(prev => {
-          if (prev.length > target.length) {
-            return prev.slice(0, -1)
-          }
-          targetRef.current = prev.replace(current.from, current.to)
-          setPhase('typing')
-          setShowPlay(false)
-          return prev
-        })
-      }, 8)
-      return () => clearTimeout(timer)
-    }
-  }, [phase])
+    const current = replacements[step]
+    const nextCode = code.replace(current.from, '')
+    
+    const interval = setInterval(() => {
+      setCode(prev => {
+        if (prev.length > nextCode.length) {
+          clearInterval(interval)
+          setTimeout(() => {
+            setCode(prev + current.to)
+            setAnimating(false)
+          }, 100)
+          return prev.slice(0, -1)
+        }
+        return prev.slice(0, -1)
+      })
+    }, 15)
+    
+    return () => clearInterval(interval)
+  }, [animating, step])
 
-  const playAnimation = () => {
-    if (currentRef.current === 0) {
-      setDisplayCode('')
-      targetRef.current = initialCode
-      setPhase('typing')
-      currentRef.current = 1
-      setShowPlay(false)
-      return
+  const handlePlay = () => {
+    if (step === 0) {
+      setCode('')
+      setTimeout(() => setAnimating(true), 100)
+    } else if (step < replacements.length) {
+      setAnimating(true)
     }
-
-    if (currentRef.current < replacements.length) {
-      const current = replacements[currentRef.current - 1]
-      const afterDelete = displayCode.replace(current.from, '')
-      targetRef.current = afterDelete.replace(current.from, current.to)
-      setPhase('deleting')
-      currentRef.current++
-      setShowPlay(false)
-    }
+    setStep(s => s + 1)
   }
 
   return (
     <div className="editor-container">
-      <pre className="code-display">
-        <code>{displayCode}</code>
-        {phase === 'typing' && <span className="cursor">|</span>}
-      </pre>
-      {showPlay && (
-        <button className="play-button" onClick={playAnimation}>
-          ▶
-        </button>
-      )}
+      <pre className="code-display"><code>{code}</code></pre>
+      <button className="play-button" onClick={handlePlay}>▶</button>
     </div>
   )
 }
